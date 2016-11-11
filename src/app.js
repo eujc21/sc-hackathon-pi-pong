@@ -5,8 +5,7 @@ import Layout from 'layout'
 const App = (props) => {
   return (
     <Router history={browserHistory}>
-      <Route path="/" component={Layout}>
-      </Route>
+      <Route path="/" component={Layout}></Route>
     </Router>
   )
 }

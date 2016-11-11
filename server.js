@@ -4,6 +4,7 @@ import webpack from 'webpack'
 import webpackMiddleware from 'webpack-dev-middleware'
 import webpackHotMiddleware from 'webpack-hot-middleware'
 import config from './webpack.config'
+import bodyParser from 'body-parser'
 
 const port = 3000
 const app = express()
@@ -21,6 +22,7 @@ const middleware = webpackMiddleware(compiler, {
   }
 })
 
+app.use(bodyParser.json())
 app.use(middleware)
 app.use(webpackHotMiddleware(compiler))
 app.get('*', function response (req, res) {
