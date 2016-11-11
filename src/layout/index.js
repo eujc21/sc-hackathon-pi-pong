@@ -1,9 +1,10 @@
 import React from 'react'
+import Canvas from '../canvas.js'
 
 const DefaultLayout = (props) => {
   return (
     <div>
-      <h1>Layout test</h1>
+      <Canvas/>
     </div>
   )
 }
