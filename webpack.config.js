@@ -6,6 +6,8 @@ const WriteFilePlugin = require('write-file-webpack-plugin')
 module.exports = {
   devtool: 'eval-source-map',
   entry: [
+    'react-hot-loader/patch',
+    'webpack-hot-middleware/client',
     path.join(__dirname, 'src/index.js')
   ],
   resolve: {
