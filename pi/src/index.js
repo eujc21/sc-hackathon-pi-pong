@@ -1,14 +1,21 @@
+const raspi = require('raspi-io');
 const five = require('johnny-five');
-const Raspi = require('raspi-io');
+const WebSocket = require('ws');
 const board = new five.Board({
-  io: new Raspi(),
+  io: new raspi()
 });
 
-board.on('ready', () => {
-  // Create a standard `led` component instance
-  const led = new five.Led(13);
-  const led2 = new five.Led(12);
+const ws = new WebSocket('ws://pihocky.localtunnel.me')
 
-  led.blink(500);
-  led2.blink(750);
+board.on('ready', () => {
+  console.log('ready');
+   var accelerometer = new five.Accelerometer({
+    controller:"MMA8452"
+  })
+
+  accelerometer.on('change', function() {
+    const { x, y, acceleration } = this;
+    ws.send(JSON.stringify({ x, y, acceleration }));
+  })
+
 });
