@@ -2,11 +2,12 @@ import React from "react"
 import Matter from "matter-js"
 
 const wsClient = new WebSocket('ws://patricks-macbook-pro.local:8080')
+let isCalibrating = false;
 
 const config = {
   canvas: {
-      width: window.outerWidth,
-      height: window.outerHeight
+      width: window.outerWidth - 20,
+      height: window.outerHeight - 100
   },
   walls: {
       color: '#aaa'
@@ -16,8 +17,14 @@ const config = {
   },
   puck: {
       color: '#f77'
-  }
+  },
+  calibrate: [{x: 0, y: 0}, {x: 0, y: 0}]
 };
+
+function calibrateControllers(data){
+  config.calibrate[0].x = data.x
+  config.calibrate[0].y = data.y
+}
 
 let game = {}
 
@@ -78,8 +85,7 @@ function createObjects(game) {
 }
 
 function update(game) {
-    updatePaddleA(game);
-    // updatePaddleB(game);
+    updatePaddle(game);
     updatePuck(game);
 }
 
@@ -104,90 +110,63 @@ function randomizeGame(game) {
     });
 }
 
-function updatePaddleA(game) {
-    console.log(game.data);
-    var f = 1;
-    var force = {x: 0, y: 0};
-    var paddleA = game.paddleA;
-    var directions = [0, 0, 0, 0];
-    if (game.keyStates[38]) {
-        force.y -= f;
-        directions[0] = 1;
-    }
-    if (game.keyStates[39]) {
-        force.x += f;
-        directions[1] = 1;
-    }
-    if (game.keyStates[40]) {
-        force.y += f;
-        directions[2] = 1;
-    }
-    if (game.keyStates[37]) {
-        force.x -= f;
-        directions[3] = 1;
-    }
-    if (directions[0] || directions[1] || directions[2] || directions[3]) {
-        Body.applyForce(paddleA, paddleA.position, force);
-    }
-    if (paddleA.position.x > config.canvas.width / 2 - 40) {
-        // Keep paddle on correct side
-        var offset = (config.canvas.width / 2 - 40) - paddleA.position.x;
-        Body.applyForce(paddleA, paddleA.position, {x: offset * 0.05, y: 0});
-    }
-    if (paddleA.position.x < 40) {
-        // Keep paddle out of goal
-        var offset = 40 - paddleA.position.x;
-        Body.applyForce(paddleA, paddleA.position, {x: offset * 0.05, y: 0});
+function updatePaddle(game, data) {
+    if (data){
+      let {x, y, acceleration, paddleId = 0} = data;
+      x = x + (-1 * config.calibrate[0].x)
+      y = y + (-1 * config.calibrate[0].y)
+      var f = 0.1;
+      var min = 0.0;
+      var force = {x: 0, y: 0};
+      var paddle = paddleId == 0 ? game.paddleA : game.paddleA;
+      var directions = [0, 0, 0, 0];
+      if (x > min) {
+          force.y -= f;
+          directions[0] = 1;
+      }
+      if (y > min) {
+          force.x += f;
+          directions[1] = 1;
+      }
+      if (x < min * -1) {
+          force.y += f;
+          directions[2] = 1;
+      }
+      if (y < min * -1) {
+          force.x -= f;
+          directions[3] = 1;
+      }
+      if (directions[0] || directions[1] || directions[2] || directions[3]) {
+          Body.applyForce(paddle, paddle.position, force);
+      }
+
+      if (paddleId == 0){
+        if (paddle.position.x > config.canvas.width / 2 - 40) {
+            // Keep paddle on correct side
+            var offset = (config.canvas.width / 2 - 40) - paddle.position.x;
+            Body.applyForce(paddle, paddle.position, {x: offset * 0.05, y: 0});
+        }
+        if (paddle.position.x < 40) {
+            // Keep paddle out of goal
+            var offset = 40 - paddle.position.x;
+            Body.applyForce(paddle, paddle.position, {x: offset * 0.05, y: 0});
+        }
+      } else {
+        if (paddle.position.x < config.canvas.width / 2 + 40) {
+           // Keep paddle on correct side
+           var offset = (config.canvas.width / 2 + 40) - paddle.position.x;
+           Body.applyForce(paddle, paddle.position, {x: offset * 0.05, y: 0});
+        }
+        if (paddle.position.x > config.canvas.width - 40) {
+           // Keep paddle out of goal
+           var offset = (config.canvas.width - 40) - paddle.position.x;
+           Body.applyForce(paddle, paddle.position, {x: offset * 0.05, y: 0});
+        }
+      }
+    } else {
+      return
     }
 }
-
-// function updatePaddleB(game) {
-//     var w = config.canvas.width;
-//     var h = config.canvas.height;
-//     var vScale = 0.1;
-//     var paddleA = game.paddleA;
-//     var paddleB = game.paddleB;
-//     var puck = game.puck;
-//     var inputs = [
-//         -(puck.position.x - paddleB.position.x) / w,
-//         (puck.position.y - paddleB.position.y) / h,
-//         -(2 * paddleB.position.x / w - 1),
-//         2 * paddleB.position.y / h - 1,
-//         -(2 * paddleA.position.x / w - 1),
-//         2 * paddleA.position.y / h - 1,
-//         -(2 * puck.position.x / w - 1),
-//         2 * puck.position.y / h - 1,
-//         -puck.velocity.x * vScale,
-//         puck.velocity.y * vScale
-//     ];
-//     var directions = game.network.activate(inputs);
-//     var f = 0.5;
-//     var force = {x: 0, y: 0};
-//     if (directions[0] > 0.9) {
-//         force.y -= f;
-//     }
-//     if (directions[3] > 0.9) {
-//         force.x += f;
-//     }
-//     if (directions[2] > 0.9) {
-//         force.y += f;
-//     }
-//     if (directions[1] > 0.9) {
-//         force.x -= f;
-//     }
-//     Body.applyForce(paddleB, paddleB.position, force);
-//
-//     if (paddleB.position.x < config.canvas.width / 2 + 40) {
-//         // Keep paddle on correct side
-//         var offset = (config.canvas.width / 2 + 40) - paddleB.position.x;
-//         Body.applyForce(paddleB, paddleB.position, {x: offset * 0.05, y: 0});
-//     }
-//     if (paddleB.position.x > config.canvas.width - 40) {
-//         // Keep paddle out of goal
-//         var offset = (config.canvas.width - 40) - paddleB.position.x;
-//         Body.applyForce(paddleB, paddleB.position, {x: offset * 0.05, y: 0});
-//     }
-// }
 
 function updatePuck(game) {
     var puck = game.puck;
@@ -200,6 +179,10 @@ function updatePuck(game) {
 }
 
 export default class Canvas extends React.Component {
+
+  _calibrate(){
+    isCalibrating = true;
+  }
 
   componentDidMount(){
     // Create instance of matter.js engine
@@ -228,8 +211,12 @@ export default class Canvas extends React.Component {
 
     wsClient.onmessage = (message) => {
       const data = JSON.parse(message.data)
-      game.data = data
-      updatePaddleA(game)
+      updatePaddle(game, data)
+
+      if (isCalibrating) {
+        calibrateControllers(data)
+        isCalibrating = false;
+      }
     }
 
     // Maintain keyboard state
@@ -253,7 +240,10 @@ export default class Canvas extends React.Component {
 
   render(){
     return (
-      <div ref={c => {this._container = c}}></div>
+      <div>
+        <button onClick={this._calibrate}>Calibrate</button>
+        <div ref={c => {this._container = c}}></div>
+      </div>
     )
   }
 }
